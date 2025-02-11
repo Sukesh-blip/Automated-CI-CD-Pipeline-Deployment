@@ -8,11 +8,74 @@
        types: [on]
 
        jobs:
-  update-config:
+          update-config:
+   if: github.event.pull_request.merged == true
+   runs-on: ubuntu-latest
+
+    IAM_TOKEN=$(curl -X POST "https://iam.test.name: Projects Git Integration Workflow
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  pull_request:
+    branches: [ "main" ]
+    types: [on]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  update-configs:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    IAM_TOKEN=$(curl -X POST "https://iam.test.cloud.ibm.com/identity/token"         -H "Content-Type: application/x-www-form-urlencoded"          -H "Accept: application/json"          -d "grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${{ secrets.IBM_CLOUD_API_KEY }}" | jq -r .access_token)
+      - name: Update Project Configs
+        run: |
+          IAM_TOKEN=$(curl -X POST "${{ vars.IAM_URL }}/identity/token" \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          -H "Accept: application/json" \
+          -d "grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${{ secrets.IBM_CLOUD_API_KEY }}" | jq -r .access_token)
+
+          BASE_URL=${{ vars.PROJECTS_API_BASE_URL }}
+
+          # get files changed in the PR
+          changed_files=$(git diff --name-only HEAD^ HEAD)
+          echo "Changed files: $changed_files"
+
+          for file in $changed_files; do
+            # find config files that were changed
+            if [[ "${file}" == ${{ vars.CONFIG_FOLDER_PATH }}/* ]] && [ -s "${file}" ]; then
+              echo "Config file updated: ${file}"
+                            
+              # extract data from config files
+              PROJECT_ID=$(jq -r '.project_id' $file)
+              CONFIG_ID=$(jq -r '.config_id' $file)
+              DEF=$(jq '.definition' $file)
+
+              echo "Project ID: ${fd3826d3-75d4-44af-a17d-8c2b98dbd70a}"
+              echo "Config ID: ${crn:v1:bluemix:public:project:eu-de:a/1d28c7c669b840ad870516cf6b5e05cd:fd3826d3-75d4-44af-a17d-8c2b98dbd70a::}"
+
+              # update config definition
+              RESPONSE=$(curl -X PATCH "${BASE_URL}/v1/projects/${PROJECT_ID}/configs/${CONFIG_ID}" \
+              --header "Authorization: Bearer ${IAM_TOKEN}" \
+              --header "Accept: application/json" \
+              --header "Content-Type: application/json" \
+              --data "{ \"definition\": ${DEF} }")
+
+              echo $RESPONSE
+              ERR_CODE=$(echo $RESPONSE | jq '.code')
+              if [ "${ERR_CODE}" != "null" ]; then
+                exit 1
+              fi
+            else
+              echo "Not a project configuration file: ${file}"
+            fi
+          donecloud.ibm.com/identity/token"         -H "Content-Type: application/x-www-form-urlencoded"          -H "Accept: application/json"          -d "grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${{ secrets.IBM_CLOUD_API_KEY }}" | jq -r .access_token)
 
     # get files changed in the PR
           changed_files=$(git diff --name-only HEAD^ HEAD)
@@ -28,5 +91,5 @@
               CONFIG_ID=$(jq -r '.config_id' $file)
               DEF=$(jq '.definition' $file)
 
-              echo "Project ID: ${PROJECT_ID}"
-              echo "Config ID: ${CONFIG_ID}"
+              echo "Project ID: ${fd3826d3-75d4-44af-a17d-8c2b98dbd70a}"
+              echo "Config ID: ${crn:v1:bluemix:public:project:eu-de:a/1d28c7c669b840ad870516cf6b5e05cd:fd3826d3-75d4-44af-a17d-8c2b98dbd70a::}"
