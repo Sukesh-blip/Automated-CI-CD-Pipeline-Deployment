@@ -1,0 +1,32 @@
+# Controls when the workflow will run
+   on:
+     # Triggers the workflow on push or pull request events but only for the "main" branch
+     # push:
+     #   branches: [ "main" ]
+     pull_request:
+       branches: [ "main" ]
+       types: [on]
+
+       jobs:
+  update-config:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    IAM_TOKEN=$(curl -X POST "https://iam.test.cloud.ibm.com/identity/token"         -H "Content-Type: application/x-www-form-urlencoded"          -H "Accept: application/json"          -d "grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${{ secrets.IBM_CLOUD_API_KEY }}" | jq -r .access_token)
+
+    # get files changed in the PR
+          changed_files=$(git diff --name-only HEAD^ HEAD)
+          echo "Changed files: $changed_files"
+
+          for file in $changed_files; do
+            # find config files that were changed
+            if [[ "${file}" == ${{ vars.CONFIG_FOLDER_PATH }}/* ]] && [ -s "${file}" ]; then
+              echo "Config file updated: ${file}"
+                         
+              # extract data from config files
+              PROJECT_ID=$(jq -r '.project_id' $file)
+              CONFIG_ID=$(jq -r '.config_id' $file)
+              DEF=$(jq '.definition' $file)
+
+              echo "Project ID: ${PROJECT_ID}"
+              echo "Config ID: ${CONFIG_ID}"
